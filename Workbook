@@ -1,0 +1,76 @@
+Step 1) 
+Launch EC2 # Ubuntu Server 20.04 LTS (HVM), SSD Volume Type - ami-07dd19a7900a1f049 (64-bit x86) / ami-03c1b544a7566b3e5 (64-bit Arm)
+
+Step 2) 
+ssh -i "RediffEC2KeyPairV2.pem" ubuntu@ec2-52-32-113-57.us-west-2.compute.amazonaws.com
+
+Step 3) 
+sudo apt-get update
+sudo apt-get install docker-compose
+sudo apt install awscli -y
+mkdir lambda-docker
+cd lambda-docker
+
+Step 4) Github URL # https://github.com/srcecde
+cat > app.py
+import json
+import requests
+
+def handler(event, context):
+
+    # TODO implementation
+    
+    return {
+        'headers': {'Content-Type' : 'application/json'},
+        'statusCode': 200,
+        'body': json.dumps({"message": "Lambda Container image invoked!",
+                            "event": event})
+    }
+
+Step 5)	
+cat > requirements.txt
+requests==2.25.1
+
+Step 6)	
+cat > Dockerfile
+# python3.8 lambda base image
+FROM public.ecr.aws/lambda/python:3.8
+
+# copy requirements.txt to container
+COPY requirements.txt ./
+
+# installing dependencies
+RUN pip3 install -r requirements.txt
+
+# Copy function code to container
+COPY app.py ./
+
+# setting the CMD to your handler file_name.function_name
+CMD [ "app.handler" ]
+
+Step 7)	
+AWS Public Container Images are located in "https://gallery.ecr.aws/lambda/python"
+Create private Repo's in ECR.
+Execute PUSH Commands which could vary from one repo to another.
+Remember to run using SUDO.
+
+aws ecr get-login-password --region us-west-2 | sudo docker login --username AWS --password-stdin 223783086361.dkr.ecr.us-west-2.amazonaws.com
+If the above command fails, run "sudo apt-get install gnupg2 pass"
+sudo docker build -t dockerlambda .
+sudo docker images
+sudo docker tag dockerlambda:latest 223783086361.dkr.ecr.us-west-2.amazonaws.com/dockerlambda:latest
+sudo docker push 223783086361.dkr.ecr.us-west-2.amazonaws.com/dockerlambda:latest
+
+Step 8)
+Create Lambda using this Image and Test using Hello-World Template.
+
+Step 9)
+Add API Gateway trigger and test it in browser and in Postman
+https://rbzmn8jv8k.execute-api.us-west-2.amazonaws.com/v1/containerDemo
+
+Test POST Function as well in Postman
+Post method
+Header # Content-type # Application/json
+Body # Raw
+{"Message":"Hello Container Image"}
+
